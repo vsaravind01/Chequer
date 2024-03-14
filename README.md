@@ -17,19 +17,19 @@ Chequer is a modern and efficient solution for automating the cheque clearing pr
 
 To set up the development environment for Chequer, follow these steps:
 
-1. Clone the repository:
+### 1. Clone the repository:
 
   ```bash
   git clone https://github.com/vsaravind01/chequer.git
   ```
 
-2. Install the required dependencies:
+### 2. Install the required dependencies:
 
   ```bash
   pip install -r requirements.txt
   ```
 
-3. Create database:
+### 3. Create database:
 
   Use the script `chequer/init_pgdb.sh` to create the database (you can modify the credentials in the script):
 
@@ -40,7 +40,7 @@ To set up the development environment for Chequer, follow these steps:
   > [!NOTE]
   > The script requires postgres to be installed and running on the local machine. If you are using a different database, you will need to create the database manually.
 
-4. Configure the environment variables:
+### 4. Configure the environment variables:
 
   Update `chequer/.env` with your database credentials:
 
@@ -55,7 +55,7 @@ To set up the development environment for Chequer, follow these steps:
 
   The secret key and the algorithm for JWT is also stored in the `chequer/.env` file.
 
-4. Start the development server:
+### 5. Start the development server:
 
   Use the script `chequer/start_server.sh` to start the development server:
 
