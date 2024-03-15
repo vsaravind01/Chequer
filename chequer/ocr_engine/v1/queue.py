@@ -57,9 +57,15 @@ class TextractQueue:
             amount = self.textract_engine.get_amount(document)
             date = self.textract_engine.get_date(document)
             account_number = self.textract_engine.get_account_number(document)
-            bank_name = self.textract_engine.get_bank_name(document)
             ifs_code = self.textract_engine.get_ifs_code(document)
             cheque_number = self.textract_engine.get_cheque_number(document)
+
+            from_account = (
+                db.query(Account).filter(Account.account_number == account_number).first()
+            )
+
+            if from_account is None:
+                raise Exception("Account not found")
 
             to_account = (
                 db.query(Account)
@@ -75,14 +81,13 @@ class TextractQueue:
 
             db.add(
                 ChequeClearedRecord(
-                    payer_id=1,
+                    payer_id=from_account.id,
                     image_url=queue_item.image_uri,
                     cheque_number=cheque_number,
                     ocr_url="",
                     from_account_number=account_number,
                     to_account_number=queue_item.to_account_number,
                     amount=amount,
-                    branch_name=bank_name,
                     ifs_code=ifs_code,
                     cheque_date=date,
                 )

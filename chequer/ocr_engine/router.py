@@ -18,7 +18,7 @@ SSE = SignatureSimilarityEngine()
 
 
 @router.post("/clear_cheque", status_code=status.HTTP_200_OK)
-async def extract_data(image: UploadFile, to_account_number: str, db=Depends(get_db)):
+def extract_data(image: UploadFile, to_account_number: str, db=Depends(get_db)):
     """
     Extract data from the cheque image.
 
@@ -77,11 +77,17 @@ async def extract_data(image: UploadFile, to_account_number: str, db=Depends(get
 
     setattr(cheque_record, "payee_name", payee_name)
     setattr(cheque_record, "amount", amount)
+
+    if amount > from_account.balance.value:
+        setattr(cheque_record, "status", "BOUNCE")
+
     setattr(cheque_record, "cheque_date", date)
     setattr(cheque_record, "bank_name", bank_name)
     setattr(cheque_record, "ifs_code", ifs_code)
     setattr(cheque_record, "cheque_number", cheque_number)
-    setattr(cheque_record, "status", "CLEARED")
+
+    if cheque_record.status is None:
+        setattr(cheque_record, "status", "CLEARED")
 
     ocr_dict = {
         "Queries": [{"Query": q.alias, "Answer": q.result} for q in document.queries],
@@ -106,7 +112,7 @@ async def extract_data(image: UploadFile, to_account_number: str, db=Depends(get
     db.commit()
     db.refresh(cheque_record)
 
-    if cheque_record.status is "CLEARED":
+    if cheque_record.status.value == "CLEARED":
         return cheque_record
     else:
         raise HTTPException(status_code=400, detail="Cheque not cleared.")

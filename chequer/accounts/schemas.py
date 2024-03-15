@@ -5,16 +5,15 @@ from fastapi import UploadFile
 
 class AccountCreate(BaseModel):
     account_number: str
-    branch_name: str
+    ifs_code: str
     name: str
     email: EmailStr
     phone: str
-    signature_image: UploadFile
     balance: int
 
 
 class AccountUpdate(BaseModel):
-    branch_name: str
+    ifs_code: str
     name: str
     email: EmailStr
     phone: str
@@ -42,7 +41,7 @@ class AccountResponse(BaseModel):
     id: int
     uploader_id: int
     account_number: str
-    branch_name: str
+    ifs_code: str
     name: str
     email: EmailStr
     phone: str
@@ -57,7 +56,7 @@ class AccountResponse(BaseModel):
             id=account.id,
             uploader_id=account.uploader_id,
             account_number=account.account_number,
-            branch_name=account.branch_name,
+            ifs_code=account.ifs_code,
             name=account.name,
             email=account.email,
             phone=account.phone,

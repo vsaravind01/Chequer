@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Security, status
+from fastapi import APIRouter, Depends, File, HTTPException, Security, UploadFile, status, Body
 
 from chequer.accounts.models import Account
 from chequer.accounts.schemas import AccountCreate, AccountResponse, AccountUpdate
@@ -14,7 +14,10 @@ router = APIRouter(
 
 @router.post("/create")
 async def create_account(
-    account: AccountCreate, db=Depends(get_db), current_user: User = Depends(get_current_user)
+    account: AccountCreate = Depends(),
+    image_file: UploadFile = File(...),
+    db=Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> AccountResponse:
     """
     Create a new account in the database.
@@ -24,7 +27,7 @@ async def create_account(
     - **account**: (AccountCreate) Account creation details
                 - **uploader_id**: ID of the user who created the account
                 - **account_number**: Account number
-                - **branch_name**: Branch name
+                - **ifs_code**: IFS or IRFC code
                 - **name**: Name of the account holder
                 - **email**: Email of the account holder
                 - **phone**: Phone number of the account holder
@@ -36,14 +39,14 @@ async def create_account(
     - **AccountResponse**: Account creation details
     """
     store = ChequerStore(StoreTypes.SIGNATURES)
-    image = await account.signature_image.read()
+    image = await image_file.read()
 
     uri = store.upload_file(image, f"{account.account_number}.png")
 
     new_account = Account(
         uploader_id=current_user.id,
         account_number=account.account_number,
-        branch_name=account.branch_name,
+        ifs_code=account.ifs_code,
         name=account.name,
         email=account.email,
         phone=account.phone,

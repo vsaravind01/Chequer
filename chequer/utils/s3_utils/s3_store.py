@@ -1,3 +1,4 @@
+from distutils.command import check
 import os
 from enum import Enum
 from typing import IO, Union
@@ -40,7 +41,6 @@ def check_file_exists(method):
 
     return wrapper
 
-
 class ChequerStore:
     """Chequer class to store the S3 bucket name and the S3 client.
 
@@ -51,7 +51,8 @@ class ChequerStore:
     """
 
     def __init__(self, store_type: StoreTypes):
-        self.s3 = boto3.client("s3")
+        _session = boto3.Session()
+        self.s3 = _session.client("s3")
         self.bucket_name = os.environ["S3_CHEQUER_STORE"]
         self.store_name = store_type.value
 
@@ -78,7 +79,6 @@ class ChequerStore:
         response = self.s3.list_objects_v2(Bucket=self.bucket_name, Prefix=self.store_name)
         return [content["Key"] for content in response.get("Contents", [])]
 
-    @check_file_exists
     def upload_file(self, file: Union[bytes, str, IO], file_name: str) -> str:
         """Upload a file to the S3 bucket.
 
@@ -91,12 +91,13 @@ class ChequerStore:
         -------
         - **str**: S3 URI of the uploaded file
         """
+        if self.file_exists(file_name):
+            raise FileExistsError
         if isinstance(file, str):
             file = file.encode("utf-8")
         self.s3.put_object(Bucket=self.bucket_name, Key=f"{self.store_name}/{file_name}", Body=file)
         return f"s3://{self.bucket_name}/{self.store_name}/{file_name}"
 
-    @check_file_exists
     def download_file(self, file_name: str, file_path: str):
         """Download a file from the S3 bucket.
 
@@ -105,9 +106,10 @@ class ChequerStore:
         - **file_name**: (str) Name of the file
         - **file_path**: (str) Path to save the downloaded file
         """
+        if not self.file_exists(file_name):
+            raise FileDoesNotExistError(file_name, self.store_name)
         self.s3.download_file(self.bucket_name, f"{self.store_name}/{file_name}", file_path)
 
-    @check_file_exists
     def get_file(self, file_name: str):
         """Get a file from the S3 bucket.
 
@@ -119,10 +121,11 @@ class ChequerStore:
         -------
         - **bytes**: File content
         """
+        if not self.file_exists(file_name):
+            raise FileDoesNotExistError(file_name, self.store_name)
         response = self.s3.get_object(Bucket=self.bucket_name, Key=f"{self.store_name}/{file_name}")
         return response["Body"].read()
 
-    @check_file_exists
     def delete_file(self, file_name: str):
         """Delete a file from the S3 bucket.
 
@@ -130,9 +133,10 @@ class ChequerStore:
         ----------
         - **file_name**: (str) Name of the file
         """
+        if not self.file_exists(file_name):
+            raise FileDoesNotExistError(file_name, self.store_name)
         self.s3.delete_object(Bucket=self.bucket_name, Key=f"{self.store_name}/{file_name}")
 
-    @check_file_exists
     def get_file_url(self, file_name: str):
         """Get the URL of a file in the S3 bucket.
 
@@ -144,6 +148,8 @@ class ChequerStore:
         -------
         - **str**: URL of the file
         """
+        if not self.file_exists(file_name):
+            raise FileDoesNotExistError(file_name, self.store_name)
         return self.s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": self.bucket_name, "Key": f"{self.store_name}/{file_name}"},
@@ -176,6 +182,7 @@ class ChequerStore:
         -------
         - **bool**: True if the file exists, False otherwise
         """
+        print(f"{self.store_name}/{file_name}")
         response = self.s3.list_objects_v2(
             Bucket=self.bucket_name, Prefix=f"{self.store_name}/{file_name}", MaxKeys=1
         )

@@ -12,7 +12,7 @@ class Account(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     uploader_id = Column(Integer, ForeignKey(User.id), nullable=False)
     account_number = Column(String, nullable=False, unique=True)
-    branch_name = Column(String, nullable=False)
+    ifs_code = Column(String, nullable=False)
     name = Column(String, nullable=False)
     email = Column(String, nullable=False, unique=True)
     phone = Column(String, nullable=False, unique=True)

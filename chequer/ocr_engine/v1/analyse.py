@@ -12,13 +12,15 @@ from textractor.entities.document import Document
 from textractor.parsers import response_parser
 
 from chequer.utils.s3_utils.s3_store import ChequerStore, StoreTypes
+from datetime import datetime
 
 
 class TextractEngine:
     """Textract Wrapper"""
 
     def __init__(self):
-        self.textract = boto3.client("textract")
+        _session = boto3.Session(profile_name="default", region_name="ap-south-1")
+        self.textract = _session.client("textract")
         self.cheque_store = ChequerStore(StoreTypes.CHEQUES)
         self.ocr_store = ChequerStore(StoreTypes.OCR)
 
@@ -68,7 +70,7 @@ class TextractEngine:
                 return query.result
 
     @staticmethod
-    def get_date(document: Document) -> Optional[str]:
+    def get_date(document: Document) -> Optional[Union[str, datetime]]:
         """Get the date from the document.
 
         Parameters
@@ -77,11 +79,16 @@ class TextractEngine:
 
         Returns
         -------
-        - **date**: (str) The date.
+        - **date**: (datetime | str) The date.
         """
         for query in document.queries:
             if query.alias == "date":
-                return query.result
+                try:
+                    date = datetime.strptime(query.result, "%d%m%Y")
+                    date = date.strftime("%d-%m-%Y")
+                except ValueError:
+                    date = query.result
+                return date
 
     @staticmethod
     def get_account_number(document: Document) -> Optional[str]:
@@ -168,7 +175,7 @@ class TextractEngine:
         response = self.textract.analyze_document(
             Document={"S3Object": {"Bucket": self.cheque_store.bucket_name, "Name": s3_key}},
             FeatureTypes=["QUERIES", "SIGNATURES"],
-            Querys=queries,
+            QueriesConfig={"Queries": queries},
         )
         document = response_parser.parse(response)
         return document
