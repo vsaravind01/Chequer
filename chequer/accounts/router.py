@@ -35,7 +35,7 @@ async def create_account(
     -------
     - **AccountResponse**: Account creation details
     """
-    store = ChequerStore(StoreTypes.CHEQUES)
+    store = ChequerStore(StoreTypes.SIGNATURES)
     image = await account.signature_image.read()
 
     uri = store.upload_file(image, f"{account.account_number}.png")

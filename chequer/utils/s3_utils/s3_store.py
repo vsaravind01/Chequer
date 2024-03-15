@@ -1,5 +1,6 @@
 import os
 from enum import Enum
+from typing import IO, Union
 
 import boto3
 
@@ -17,6 +18,7 @@ class StoreTypes(Enum):
 
     CHEQUES = "cheques"
     OCR = "ocr"
+    SIGNATURES = "signatures"
 
 
 def check_file_exists(method):
@@ -77,18 +79,20 @@ class ChequerStore:
         return [content["Key"] for content in response.get("Contents", [])]
 
     @check_file_exists
-    def upload_file(self, file: bytes, file_name: str) -> str:
+    def upload_file(self, file: Union[bytes, str, IO], file_name: str) -> str:
         """Upload a file to the S3 bucket.
 
         Parameters
         ----------
+        - **file**: (bytes) File content
         - **file_name**: (str) Name of the file
-        - **file_path**: (str) Path to the file to be uploaded
 
         Returns
         -------
         - **str**: S3 URI of the uploaded file
         """
+        if isinstance(file, str):
+            file = file.encode("utf-8")
         self.s3.put_object(Bucket=self.bucket_name, Key=f"{self.store_name}/{file_name}", Body=file)
         return f"s3://{self.bucket_name}/{self.store_name}/{file_name}"
 

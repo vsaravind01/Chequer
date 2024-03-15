@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import boto3
 import numpy as np
@@ -35,7 +35,8 @@ class TextractEngine:
             },
         ]
 
-    def get_payee_name(self, document: Document) -> Optional[str]:
+    @staticmethod
+    def get_payee_name(document: Document) -> Optional[str]:
         """Get the payee name from the document.
 
         Parameters
@@ -50,7 +51,8 @@ class TextractEngine:
             if query.alias == "payee_name":
                 return query.result
 
-    def get_amount(self, document: Document) -> Optional[str]:
+    @staticmethod
+    def get_amount(document: Document) -> Optional[str]:
         """Get the amount from the document.
 
         Parameters
@@ -65,7 +67,8 @@ class TextractEngine:
             if query.alias == "amount":
                 return query.result
 
-    def get_date(self, document: Document) -> Optional[str]:
+    @staticmethod
+    def get_date(document: Document) -> Optional[str]:
         """Get the date from the document.
 
         Parameters
@@ -80,7 +83,8 @@ class TextractEngine:
             if query.alias == "date":
                 return query.result
 
-    def get_account_number(self, document: Document) -> Optional[str]:
+    @staticmethod
+    def get_account_number(document: Document) -> Optional[str]:
         """Get the account number from the document.
 
         Parameters
@@ -95,7 +99,8 @@ class TextractEngine:
             if query.alias == "account_number":
                 return query.result
 
-    def get_bank_name(self, document: Document) -> Optional[str]:
+    @staticmethod
+    def get_bank_name(document: Document) -> Optional[str]:
         """Get the bank name from the document.
 
         Parameters
@@ -110,7 +115,8 @@ class TextractEngine:
             if query.alias == "bank_name":
                 return query.result
 
-    def get_ifs_code(self, document: Document) -> Optional[str]:
+    @staticmethod
+    def get_ifs_code(document: Document) -> Optional[str]:
         """Get the IFS code from the document.
 
         Parameters
@@ -125,7 +131,8 @@ class TextractEngine:
             if query.alias == "ifs_code":
                 return query.result
 
-    def get_cheque_number(self, document: Document) -> Optional[str]:
+    @staticmethod
+    def get_cheque_number(document: Document) -> Optional[str]:
         """Get the cheque number from the document.
 
         Parameters
@@ -226,9 +233,31 @@ class SignatureSimilarityEngine:
         resized_image = signature_image.resize((224, 224))
         return resized_image
 
+    def crop_image(self, image: Union[Image.Image, str], bounding_box):
+        """Crop the image using the bounding box
+
+        Parameters
+        ----------
+        - **image**: (Image.Image | str) Image object or path to the image
+        - **bounding_box**: (dict) Bounding box coordinates
+
+        Returns
+        -------
+        - **cropped_image**: (Image.Image) Cropped image
+        """
+        if isinstance(image, str):
+            image = Image.open(image)
+        width, height = image.size
+        left = bounding_box["Left"] * width
+        top = bounding_box["Top"] * height
+        right = left + (bounding_box["Width"] * width)
+        bottom = top + (bounding_box["Height"] * height)
+        cropped_image = image.crop((left, top, right, bottom))
+        return cropped_image
+
     def check_signature_similarity(
         self, signature_1: Image.Image, signature_2: Image.Image, threshold: float = 0.75
-    ) -> bool:
+    ) -> float:
         """Check the similarity between two signatures. The range of the similarity is between 0 and 1.
 
         Parameters
@@ -238,7 +267,7 @@ class SignatureSimilarityEngine:
 
         Returns
         -------
-        - **bool**: True if the similarity is greater than the threshold, else False
+        - **similarity**: (float) The similarity between the two signatures
         """
         signature_1_resized = self.resize_signature_image(signature_1)
         signature_1_array = image.img_to_array(signature_1_resized)
@@ -257,4 +286,4 @@ class SignatureSimilarityEngine:
         vector2 = np.reshape(flatten_output_2, (1, -1))
 
         similarity = cosine_similarity(vector1[0][0]["flatten_8"], vector2[0][0]["flatten_8"])
-        return similarity[0][0] > threshold
+        return similarity[0][0]
