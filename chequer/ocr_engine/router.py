@@ -1,5 +1,5 @@
 from fastapi.routing import APIRouter
-from fastapi import Depends, status, Security, UploadFile
+from fastapi import Depends, HTTPException, status, Security, UploadFile
 from chequer.auth.dependencies import get_current_user, is_user_authenticated
 from chequer.utils.db_utils import get_db
 from chequer.utils.s3_utils.s3_store import ChequerStore, StoreTypes
@@ -11,7 +11,7 @@ from PIL import Image
 import json
 
 router = APIRouter(
-    prefix="/ocr-engine", tags=["ocr-engine"], dependencies=[Security(is_user_authenticated)]
+    prefix="/ocr-engine/v1", tags=["ocr-engine"], dependencies=[Security(is_user_authenticated)]
 )
 
 SSE = SignatureSimilarityEngine()
@@ -105,7 +105,11 @@ async def extract_data(image: UploadFile, to_account_number: str, db=Depends(get
     db.add(cheque_record)
     db.commit()
     db.refresh(cheque_record)
-    return cheque_record
+
+    if cheque_record.status is "CLEARED":
+        return cheque_record
+    else:
+        raise HTTPException(status_code=400, detail="Cheque not cleared.")
 
 
 @router.get("/queue", status_code=status.HTTP_200_OK)

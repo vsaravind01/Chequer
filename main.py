@@ -3,6 +3,7 @@ from sqlalchemy import text
 
 from chequer.auth.router import router as auth_router
 from chequer.accounts.router import router as accounts_router
+from chequer.ocr_engine.router import router as ocr_engine_router
 from chequer.utils.db_utils import get_db
 from chequer.database import sync_engine, Base
 
@@ -12,6 +13,7 @@ app = FastAPI()
 
 app.include_router(auth_router)
 app.include_router(accounts_router)
+app.include_router(ocr_engine_router)
 
 
 @app.get("/")
