@@ -5,6 +5,7 @@ from chequer.accounts.schemas import AccountCreate, AccountResponse, AccountUpda
 from chequer.auth.dependencies import get_current_user, is_user_authenticated
 from chequer.auth.models import User
 from chequer.utils.db_utils import get_db
+from chequer.utils.s3_utils.s3_store import ChequerStore, StoreTypes
 
 router = APIRouter(
     prefix="/accounts", tags=["accounts"], dependencies=[Security(is_user_authenticated)]
@@ -27,13 +28,18 @@ async def create_account(
                 - **name**: Name of the account holder
                 - **email**: Email of the account holder
                 - **phone**: Phone number of the account holder
-                - **signature_url**: URL of the signature of the account holder
+                - **signature_image**: Signature image of the account holder
     - **db**: (Session) Database session
 
     Returns
     -------
     - **AccountResponse**: Account creation details
     """
+    store = ChequerStore(StoreTypes.CHEQUES)
+    image = await account.signature_image.read()
+
+    uri = store.upload_file(image, f"{account.account_number}.png")
+
     new_account = Account(
         uploader_id=current_user.id,
         account_number=account.account_number,
@@ -42,7 +48,7 @@ async def create_account(
         email=account.email,
         phone=account.phone,
         balance=account.balance,
-        signature_url=account.signature_url,
+        signature_url=uri,
     )
     db.add(new_account)
     db.commit()

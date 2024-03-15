@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from fastapi import UploadFile
 
 
 class AccountCreate(BaseModel):
@@ -8,7 +9,7 @@ class AccountCreate(BaseModel):
     name: str
     email: EmailStr
     phone: str
-    signature_url: str
+    signature_image: UploadFile
     balance: int
 
 
