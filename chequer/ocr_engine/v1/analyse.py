@@ -1,9 +1,17 @@
-from typing import List, Optional
-from chequer.utils.s3_utils.s3_store import ChequerStore, StoreTypes
-from textractor.parsers import response_parser
-from textractor.entities.document import Document
-import boto3
 import os
+from typing import List, Optional
+
+import boto3
+import numpy as np
+import tensorflow as tf
+from keras.layers import TFSMLayer
+from keras.preprocessing import image
+from PIL import Image
+from sklearn.metrics.pairwise import cosine_similarity
+from textractor.entities.document import Document
+from textractor.parsers import response_parser
+
+from chequer.utils.s3_utils.s3_store import ChequerStore, StoreTypes
 
 
 class TextractEngine:
@@ -188,3 +196,65 @@ class TextractEngine:
             QueriesConfig={"Queries": queries},
         )
         return response
+
+
+class SignatureSimilarityEngine:
+    """Signature Similarity Engine
+
+    This class is used to check the similarity between two signatures.
+    """
+
+    def __init__(self):
+        file_path = os.path.abspath(__file__)
+        directory_path = os.path.dirname(file_path)
+        model_path = os.path.normpath(os.path.join(directory_path, "../../models/VGG16"))
+        self.model = TFSMLayer(model_path, call_endpoint="serving_default")
+        self.predict_fn = tf.function(self.model)
+
+    @staticmethod
+    def resize_signature_image(signature_image: Image.Image):
+        """Resize the signature image to 224x224
+
+        Parameters
+        ----------
+        - **signature_image**: (Image.Image) Image of the signature
+
+        Returns
+        -------
+        - **resized_image**: (Image.Image) Resized image of the signature
+        """
+        resized_image = signature_image.resize((224, 224))
+        return resized_image
+
+    def check_signature_similarity(
+        self, signature_1: Image.Image, signature_2: Image.Image, threshold: float = 0.75
+    ) -> bool:
+        """Check the similarity between two signatures. The range of the similarity is between 0 and 1.
+
+        Parameters
+        ----------
+        - **signature_1**: (Image.Image) Image of the first signature
+        - **signature_2**: (Image.Image) Image of the second signature
+
+        Returns
+        -------
+        - **bool**: True if the similarity is greater than the threshold, else False
+        """
+        signature_1_resized = self.resize_signature_image(signature_1)
+        signature_1_array = image.img_to_array(signature_1_resized)
+        signature_1_array = np.expand_dims(signature_1_array, axis=0)
+        flatten_output_1 = self.predict_fn(signature_1_array)
+
+        signature_2_resized = self.resize_signature_image(signature_2)
+        signature_2_array = image.img_to_array(signature_2_resized)
+        signature_2_array = np.expand_dims(signature_2_array, axis=0)
+        flatten_output_2 = self.predict_fn(signature_2_array)
+
+        assert flatten_output_1 is not None
+        assert flatten_output_2 is not None
+
+        vector1 = np.reshape(flatten_output_1, (1, -1))
+        vector2 = np.reshape(flatten_output_2, (1, -1))
+
+        similarity = cosine_similarity(vector1[0][0]["flatten_8"], vector2[0][0]["flatten_8"])
+        return similarity[0][0] > threshold
