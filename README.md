@@ -2,6 +2,8 @@
 
 Chequer is a prototype for a cheque clearing system built for the Standard Chartered Hackathon.
 
+![output-onlinepngtools](https://github.com/user-attachments/assets/707dd1bc-dea4-46d9-8b07-d758a26b9b27)
+
 ## Description
 
 Chequer is a modern and efficient solution for automating the cheque clearing process. It provides a streamlined workflow for processing cheques, reducing manual effort and improving accuracy.
